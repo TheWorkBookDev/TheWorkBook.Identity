@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
 
-namespace Is4EntityFramework.Migrations.ConfigurationDb
+namespace TheWorkBook.Identity.Migrations.ConfigurationDb
 {
     [DbContext(typeof(ConfigurationDbContext))]
     [Migration("20200624171023_Configuration")]

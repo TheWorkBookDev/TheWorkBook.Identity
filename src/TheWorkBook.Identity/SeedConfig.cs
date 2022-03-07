@@ -5,9 +5,9 @@
 using IdentityServer4.Models;
 using System.Collections.Generic;
 
-namespace Is4EntityFramework
+namespace TheWorkBook.Identity
 {
-    public static class Config
+    public static class SeedConfig
     {
         public static IEnumerable<IdentityResource> IdentityResources =>
                    new IdentityResource[]

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 
-namespace Is4EntityFramework.Migrations.PersistedGrantDb
+namespace TheWorkBook.Identity.Migrations.PersistedGrantDb
 {
     public partial class Grants : Migration
     {

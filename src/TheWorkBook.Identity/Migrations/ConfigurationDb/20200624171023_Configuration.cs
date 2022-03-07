@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 
-namespace Is4EntityFramework.Migrations.ConfigurationDb
+namespace TheWorkBook.Identity.Migrations.ConfigurationDb
 {
     public partial class Configuration : Migration
     {

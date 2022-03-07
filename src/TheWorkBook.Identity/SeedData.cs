@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System.Linq;
 
-namespace Is4EntityFramework
+namespace TheWorkBook.Identity
 {
     public class SeedData
     {
@@ -43,7 +43,7 @@ namespace Is4EntityFramework
             if (!context.Clients.Any())
             {
                 Log.Debug("Clients being populated");
-                foreach (var client in Config.Clients.ToList())
+                foreach (var client in SeedConfig.Clients.ToList())
                 {
                     context.Clients.Add(client.ToEntity());
                 }
@@ -57,7 +57,7 @@ namespace Is4EntityFramework
             if (!context.IdentityResources.Any())
             {
                 Log.Debug("IdentityResources being populated");
-                foreach (var resource in Config.IdentityResources.ToList())
+                foreach (var resource in SeedConfig.IdentityResources.ToList())
                 {
                     context.IdentityResources.Add(resource.ToEntity());
                 }
@@ -71,7 +71,7 @@ namespace Is4EntityFramework
             if (!context.ApiResources.Any())
             {
                 Log.Debug("ApiScopes being populated");
-                foreach (var resource in Config.ApiScopes.ToList())
+                foreach (var resource in SeedConfig.ApiScopes.ToList())
                 {
                     context.ApiScopes.Add(resource.ToEntity());
                 }
