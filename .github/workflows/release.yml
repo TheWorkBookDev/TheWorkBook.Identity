@@ -50,5 +50,5 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Deploy to Lambda
-      working-directory: ./src/TheWorkBook.Backend.API
+      working-directory: ./src/TheWorkBook.Identity
       run: dotnet lambda deploy-serverless
