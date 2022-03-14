@@ -5,25 +5,59 @@
   "Parameters": {},
   "Conditions": {},
   "Resources": {
+    "ServerlessHttpApi" : {
+      "Type" : "AWS::ApiGatewayV2::ApiGatewayManagedOverrides",
+      "Properties" : { 
+        "ApiId" : "ServerlessHttpApi"
+     }
+    },
+    "AuthDomain": {
+      "Type": "AWS::ApiGatewayV2::DomainName",
+      "Properties": {
+        "DomainName": "auth.theworkbook.ie",
+        "DomainNameConfigurations": [
+          {
+            "EndpointType": "REGIONAL",
+            "CertificateArn": "arn:aws:acm:eu-west-1:111754736799:certificate/f4f822a7-c82b-4c32-8b60-75593985f46d",
+            "CertificateName": "*.theworkbook.ie",
+            "SecurityPolicy": "TLS_1_2"
+          }
+        ]
+      }
+    },
+    "Mapping": {
+      "Type": "AWS::ApiGatewayV2::ApiMapping",
+      "Properties" : {  
+        "DomainName" : "auth.theworkbook.ie",
+        "Stage" : {
+            "Ref": "ServerlessHttpApiApiGatewayDefaultStage"
+        },
+        "ApiId": {
+            "Ref": "ServerlessHttpApi"
+        }
+      },
+      "DependsOn" : "AuthDomain"
+    },
     "TheWorkBookIdentity": {
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Architectures" : ["arm64"],
+        "FunctionName": { "Fn::Sub": "theworkbookidentity" },
         "Handler": "TheWorkBook.Identity::TheWorkBook.Identity.LambdaEntryPoint::FunctionHandlerAsync",
         "Runtime": "dotnet6",
         "CodeUri": "",
-        "MemorySize": 256,
-        "Timeout": 30,
-        "Description" : "{ReleaseVersion}",
-        "VersionDescription" : "{ReleaseVersion}",
+        "MemorySize": 2048,
+        "Timeout": 15,
+        "Description" : "#{ReleaseVersion}#",
+        "VersionDescription" : "#{ReleaseVersion}#",
         "Role": null,
         "Policies": [
-          "AmazonRDSFullAccess",
-          "AWSLambda_FullAccess"
+          "AmazonSSMReadOnlyAccess",
+          "AWSLambda_FullAccess",
+          "AWSLambdaVPCAccessExecutionRole"
         ],
         "Environment": {
           "Variables": {
-            "EnableSwagger": "true",
             "LAMBDA_NET_SERIALIZER_DEBUG": "true",
             "Logging__LogLevel__Default": "Trace",
             "Logging__LogLevel__Microsoft": "Warning",
@@ -32,19 +66,35 @@
         },
         "Events": {
           "ProxyResource": {
-            "Type": "Api",
+            "Type": "HttpApi",
             "Properties": {
               "Path": "/{proxy+}",
-              "Method": "ANY"
+              "Method": "ANY",
+              "ApiId": {
+                "Ref": "ServerlessHttpApi"
+              }
             }
           },
           "RootResource": {
-            "Type": "Api",
+            "Type": "HttpApi",
             "Properties": {
               "Path": "/",
-              "Method": "ANY"
+              "Method": "ANY",
+              "ApiId": {
+                "Ref": "ServerlessHttpApi"
+              }
             }
           }
+        },
+        "VpcConfig": {
+          "SecurityGroupIds": [
+              "sg-08eef6f199963de4b"
+          ],
+          "SubnetIds": [
+              "subnet-0f983d4d6eae1a2a9",
+              "subnet-0671ac1705a89c414",
+              "subnet-04733ab6a67ed6cd4"
+          ]
         }
       }
     }
@@ -53,7 +103,7 @@
     "ApiURL": {
       "Description": "API endpoint URL for Prod environment",
       "Value": {
-        "Fn::Sub": "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+        "Fn::Sub": "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
       }
     }
   }

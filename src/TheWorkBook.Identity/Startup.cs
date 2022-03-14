@@ -1,7 +1,5 @@
-﻿// Copyright (c) Brock Allen & Dominick Baier. All rights reserved.
-// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
-
-
+﻿using Amazon.Lambda.Core;
+using Amazon.SimpleSystemsManagement;
 using IdentityServer4;
 using IdentityServerHost.Quickstart.UI;
 using Microsoft.AspNetCore.Builder;
@@ -10,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
+using TheWorkBook.Utils;
+using TheWorkBook.Utils.Abstraction;
+using TheWorkBook.Utils.Abstraction.ParameterStore;
 
 namespace TheWorkBook.Identity
 {
@@ -18,17 +20,35 @@ namespace TheWorkBook.Identity
         public IWebHostEnvironment Environment { get; }
         public IConfiguration Configuration { get; }
 
+        private readonly IEnvVariableHelper _envVariableHelper;
+        readonly bool traceEnabled = false;
+
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
         {
             Environment = environment;
             Configuration = configuration;
+
+            _envVariableHelper = new TheWorkBook.Utils.EnvVariableHelper(null, Configuration);
+
+            string loggingLevel = _envVariableHelper.GetVariable("Logging__LogLevel__Default");
+            if (!string.IsNullOrWhiteSpace(loggingLevel))
+                traceEnabled = loggingLevel.Equals("Trace", StringComparison.InvariantCultureIgnoreCase);
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+            services.AddTransient<IEnvVariableHelper, EnvVariableHelper>();
 
-            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            using IParameterStore parameterStore = GetParameterStore();
+
+            LogTrace("Got IParameterStore object");
+
+            IParameter connectionStringParam = parameterStore.GetParameter("/database/app-connection-string");
+
+            LogTrace("Got connectionStringParam object");
+
+            var connectionString = connectionStringParam.Value;
 
             var builder = services.AddIdentityServer(options =>
             {
@@ -44,12 +64,12 @@ namespace TheWorkBook.Identity
                 // this adds the config data from DB (clients, resources, CORS)
                 .AddConfigurationStore(options =>
                 {
-                    options.ConfigureDbContext = builder => builder.UseSqlite(connectionString);
+                    options.ConfigureDbContext = builder => builder.UseSqlServer(connectionString);
                 })
                 // this adds the operational data from DB (codes, tokens, consents)
                 .AddOperationalStore(options =>
                 {
-                    options.ConfigureDbContext = builder => builder.UseSqlite(connectionString);
+                    options.ConfigureDbContext = builder => builder.UseSqlServer(connectionString);
 
                     // this enables automatic token cleanup. this is optional.
                     options.EnableTokenCleanup = true;
@@ -58,17 +78,17 @@ namespace TheWorkBook.Identity
             // not recommended for production - you need to store your key material somewhere secure
             builder.AddDeveloperSigningCredential();
 
-            services.AddAuthentication()
-                .AddGoogle(options =>
-                {
-                    options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
+            services.AddAuthentication();
+                //.AddGoogle(options =>
+                //{
+                //    options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
 
-                    // register your IdentityServer with Google at https://console.developers.google.com
-                    // enable the Google+ API
-                    // set the redirect URI to https://localhost:5001/signin-google
-                    options.ClientId = "copy client ID from Google here";
-                    options.ClientSecret = "copy client secret from Google here";
-                });
+                //    // register your IdentityServer with Google at https://console.developers.google.com
+                //    // enable the Google+ API
+                //    // set the redirect URI to https://localhost:5001/signin-google
+                //    options.ClientId = "copy client ID from Google here";
+                //    options.ClientSecret = "copy client secret from Google here";
+                //});
         }
 
         public void Configure(IApplicationBuilder app)
@@ -88,6 +108,47 @@ namespace TheWorkBook.Identity
             {
                 endpoints.MapDefaultControllerRoute();
             });
+        }
+
+        private IParameterStore GetParameterStore()
+        {
+            LogTrace("Entered GetParameterStore()");
+
+            bool useSpecifiedParamStoreCreds =
+                _envVariableHelper.GetVariable("UseSpecifiedParamStoreCreds") != null
+                    && _envVariableHelper.GetVariable("UseSpecifiedParamStoreCreds")
+                        .Equals("true", StringComparison.InvariantCultureIgnoreCase);
+
+            LogTrace($"useSpecifiedParamStoreCreds: {useSpecifiedParamStoreCreds}");
+
+            AmazonSimpleSystemsManagementClient client;
+
+            if (useSpecifiedParamStoreCreds)
+            {
+                Amazon.RegionEndpoint regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(_envVariableHelper.GetVariable("AWSRegion", true));
+
+                LogTrace($"instantiating AmazonSimpleSystemsManagementClient: {useSpecifiedParamStoreCreds}");
+
+                client = new AmazonSimpleSystemsManagementClient(_envVariableHelper.GetVariable("ParamStoreConnectionKey", true),
+                    _envVariableHelper.GetVariable("ParamStoreConnectionSecret", true), regionEndpoint);
+            }
+            else
+            {
+                LogTrace($"instantiating default AmazonSimpleSystemsManagementClient: {useSpecifiedParamStoreCreds}");
+                client = new AmazonSimpleSystemsManagementClient();
+            }
+
+            LogTrace("'AmazonSimpleSystemsManagementClient' client instantiated");
+
+            return new TheWorkBook.Utils.ParameterStore.ParameterStore(client);
+        }
+
+        private void LogTrace(string logMessage)
+        {
+            if (traceEnabled)
+            {
+                LambdaLogger.Log(logMessage);
+            }
         }
     }
 }
