@@ -12,6 +12,6 @@
   "template": "serverless.template",
   "template-parameters": "",
   "s3-bucket": "theworkbook-apps",
-  "stack-name": "TheWorkBook",
+  "stack-name": "TheWorkBookAuth",
   "msbuild-parameters": "/p:Configuration=Release /p:PublishReadyToRun=true /p:TieredCompilation=false /p:TieredCompilationQuickJit=false /p:Version=#{ReleaseVersion}# --self-contained false"
 }
