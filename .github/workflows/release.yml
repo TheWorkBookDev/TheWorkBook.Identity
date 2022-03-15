@@ -40,7 +40,7 @@ jobs:
     - name: Download Signing Certificates from AWS S3
       working-directory: ./src/TheWorkBook.Identity
       run: |
-        rm -r SigningCertificate; mkdir SigningCertificate
+        mkdir SigningCertificate
         cd SigningCertificate
         #aws s3 cp s3://theworkbook-deploy-files/SigningCertificate/cert_ecdsa384.pfx cert_ecdsa384.pfx
         aws s3 cp s3://theworkbook-deploy-files/SigningCertificate/cert_rsa512.pfx cert_rsa512.pfx
