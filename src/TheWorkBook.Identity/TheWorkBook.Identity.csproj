@@ -21,4 +21,10 @@
 		<PackageReference Include="TheWorkBook.Utils" Version="1.0.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Update="SigningCertificate\**">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
 </Project>

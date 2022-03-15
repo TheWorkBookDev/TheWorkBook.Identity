@@ -38,12 +38,8 @@ jobs:
         echo "version=${version}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append      
       shell: pwsh
     - name: Download Signing Certificates from AWS S3
-      working-directory: ./src/TheWorkBook.Identity
-      run: |
-        mkdir SigningCertificate
-        cd SigningCertificate
-        #aws s3 cp s3://theworkbook-deploy-files/SigningCertificate/cert_ecdsa384.pfx cert_ecdsa384.pfx
-        aws s3 cp s3://theworkbook-deploy-files/SigningCertificate/cert_rsa512.pfx cert_rsa512.pfx
+      working-directory: ./src/TheWorkBook.Identity/SigningCertificate
+      run: aws s3 cp s3://theworkbook-deploy-files/SigningCertificate/cert_rsa512.pfx cert_rsa512.pfx
     - name: Set version in CloudFormation
       working-directory: ./src/TheWorkBook.Identity
       run: find *.template -type f -exec sed -i ''s/#{ReleaseVersion}#/v${{ env.version }}/g'' {} \;
