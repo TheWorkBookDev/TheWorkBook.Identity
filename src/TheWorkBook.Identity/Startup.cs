@@ -9,6 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Security.Cryptography.X509Certificates;
+using TheWorkBook.Identity.Extensions;
 using TheWorkBook.Utils;
 using TheWorkBook.Utils.Abstraction;
 using TheWorkBook.Utils.Abstraction.ParameterStore;
@@ -75,8 +77,30 @@ namespace TheWorkBook.Identity
                     options.EnableTokenCleanup = true;
                 });
 
-            // not recommended for production - you need to store your key material somewhere secure
-            builder.AddDeveloperSigningCredential();
+            if (Environment.IsLocal())
+            {
+                // not recommended for production - you need to store your key material somewhere secure
+                builder.AddDeveloperSigningCredential();
+            }
+            else
+            {
+                IParameterList parameters = parameterStore.GetParameterListByPath("/identity/signingcert/");
+
+                string certificate = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar
+                    + "SigningCertificate"
+                    + System.IO.Path.DirectorySeparatorChar
+                    + parameters.GetParameterValue("certname");
+
+                var cert = new X509Certificate2(
+                  certificate,
+                  parameters.GetParameterValue("password"),
+                  X509KeyStorageFlags.MachineKeySet |
+                  X509KeyStorageFlags.PersistKeySet |
+                  X509KeyStorageFlags.Exportable
+                );
+
+                builder.AddSigningCredential(cert);
+            }
 
             services.AddAuthentication();
                 //.AddGoogle(options =>
