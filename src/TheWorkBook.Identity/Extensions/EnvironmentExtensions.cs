@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 
-namespace TheWorkBook.Identity.Extensions
+namespace TheWorkBook.Identity
 {
     public static class EnvironmentExtensions
     {

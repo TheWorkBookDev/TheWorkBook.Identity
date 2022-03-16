@@ -1,7 +1,6 @@
 ﻿using Amazon.Lambda.Core;
 using Amazon.SimpleSystemsManagement;
 using IdentityServer4;
-using IdentityServerHost.Quickstart.UI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Security.Cryptography.X509Certificates;
-using TheWorkBook.Identity.Extensions;
 using TheWorkBook.Utils;
 using TheWorkBook.Utils.Abstraction;
 using TheWorkBook.Utils.Abstraction.ParameterStore;

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace IdentityServerHost.Quickstart.UI
+namespace TheWorkBook.Identity
 {
     [SecurityHeaders]
     [Authorize]

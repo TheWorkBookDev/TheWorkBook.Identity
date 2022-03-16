@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Json;
 
-namespace IdentityServerHost.Quickstart.UI
+namespace TheWorkBook.Identity
 {
     public class TestUsers
     {

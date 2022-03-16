@@ -1,6 +1,6 @@
 using IdentityServer4.Models;
 
-namespace IdentityServerHost.Quickstart.UI
+namespace TheWorkBook.Identity
 {
     public class ProcessConsentResult
     {

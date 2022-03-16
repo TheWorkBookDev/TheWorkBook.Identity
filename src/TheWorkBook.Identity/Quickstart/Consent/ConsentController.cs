@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace IdentityServerHost.Quickstart.UI
+namespace TheWorkBook.Identity
 {
     /// <summary>
     /// This controller processes the consent UI
