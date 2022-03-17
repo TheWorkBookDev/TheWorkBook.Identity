@@ -1,6 +1,5 @@
 ﻿using Amazon.Lambda.Core;
 using Amazon.SimpleSystemsManagement;
-using IdentityServer4;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -75,7 +74,7 @@ namespace TheWorkBook.Identity
                     options.EnableTokenCleanup = true;
                 });
 
-            if (Environment.IsLocal())
+            if (Environment.IsDevelopment())
             {
                 // not recommended for production - you need to store your key material somewhere secure
                 builder.AddDeveloperSigningCredential();

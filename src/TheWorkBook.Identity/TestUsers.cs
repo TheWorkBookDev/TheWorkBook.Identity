@@ -25,6 +25,22 @@ namespace TheWorkBook.Identity
                 {
                     new TestUser
                     {
+                        SubjectId = "1",
+                        Username = "ronanfarrell@live.ie",
+                        Password = "password",
+                        Claims =
+                        {
+                            new Claim(JwtClaimTypes.Name, "Ronan Farrell"),
+                            new Claim(JwtClaimTypes.GivenName, "Alice"),
+                            new Claim(JwtClaimTypes.FamilyName, "Smith"),
+                            new Claim(JwtClaimTypes.Email, "ronanfarrell@live.ie"),
+                            new Claim(JwtClaimTypes.EmailVerified, "true", ClaimValueTypes.Boolean),
+                            new Claim(JwtClaimTypes.WebSite, "http://alice.com"),
+                            new Claim(JwtClaimTypes.Address, JsonSerializer.Serialize(address), IdentityServerConstants.ClaimValueTypes.Json)
+                        }
+                    },
+                    new TestUser
+                    {
                         SubjectId = "818727",
                         Username = "alice",
                         Password = "alice",
