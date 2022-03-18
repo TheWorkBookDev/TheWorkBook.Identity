@@ -5,7 +5,7 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "EnableSwagger": "true",
+        "EnableDiagnostics": "true",
         "Logging__LogLevel__Default": "Trace",
         "Logging__LogLevel__Microsoft": "Warning",
         "Logging__LogLevel__Microsoft_Hosting_Lifetime": "Warning"
