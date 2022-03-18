@@ -147,6 +147,15 @@ namespace TheWorkBook.Identity
 
                     LambdaLogger.Log("After await HttpContext.SignInAsync(isuser, props);");
 
+                    if (context.IsNativeClient())
+                    {
+                        LambdaLogger.Log("context.IsNativeClient()");
+
+                        // The client is native, so this change in how to
+                        // return the response is for better UX for the end user.
+                        return this.LoadingPage("Redirect", model.ReturnUrl);
+                    }
+
                     if (context != null)
                     {
                         LambdaLogger.Log("context != null");
