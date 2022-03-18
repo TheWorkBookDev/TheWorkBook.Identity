@@ -143,6 +143,10 @@ namespace TheWorkBook.Identity
                         // we can trust model.ReturnUrl since GetAuthorizationContextAsync returned non-null
                         return Redirect(model.ReturnUrl);
                     }
+                    else if (IsNativeClient(model.ReturnUrl))
+                    {
+                        return this.LoadingPage("Redirect", "theworkbook://" + model.ReturnUrl);
+                    }
 
                     // request for a local page
                     if (Url.IsLocalUrl(model.ReturnUrl))
@@ -167,6 +171,12 @@ namespace TheWorkBook.Identity
             // something went wrong, show form with error
             var vm = await BuildLoginViewModelAsync(model);
             return View(vm);
+        }
+
+        private static bool IsNativeClient(string redirectUrl)
+        {
+            return !redirectUrl.StartsWith("https", StringComparison.Ordinal)
+               && !redirectUrl.StartsWith("http", StringComparison.Ordinal);
         }
 
 
