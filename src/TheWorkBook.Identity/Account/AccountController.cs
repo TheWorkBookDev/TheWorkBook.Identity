@@ -1,3 +1,4 @@
+using Amazon.Lambda.Core;
 using IdentityModel;
 using IdentityServer4;
 using IdentityServer4.Events;
@@ -131,17 +132,31 @@ namespace TheWorkBook.Identity
 
                     await HttpContext.SignInAsync(isuser, props);
 
+                    LambdaLogger.Log("After await HttpContext.SignInAsync(isuser, props);");
+
                     if (context != null)
                     {
+                        LambdaLogger.Log("context != null");
+
                         if (context.IsNativeClient())
                         {
+                            LambdaLogger.Log("context.IsNativeClient()");
+
                             // The client is native, so this change in how to
                             // return the response is for better UX for the end user.
                             return this.LoadingPage("Redirect", model.ReturnUrl);
                         }
+                        else
+                        {
+                            LambdaLogger.Log("DIDNT enter context.IsNativeClient()");
+                        }
 
                         // we can trust model.ReturnUrl since GetAuthorizationContextAsync returned non-null
                         return Redirect(model.ReturnUrl);
+                    }
+                    else
+                    {
+                        LambdaLogger.Log("context == null");
                     }
 
                     // request for a local page
@@ -235,7 +250,19 @@ namespace TheWorkBook.Identity
         /*****************************************/
         private async Task<LoginViewModel> BuildLoginViewModelAsync(string returnUrl)
         {
-            var context = await _interaction.GetAuthorizationContextAsync(returnUrl);
+            AuthorizationRequest context = await _interaction.GetAuthorizationContextAsync(returnUrl);
+
+            if (context != null)
+            {
+                LambdaLogger.Log("BuildLoginViewModelAsync");
+                LambdaLogger.Log("context.RedirectUri:" + context.RedirectUri);
+                LambdaLogger.Log("context.DisplayMode:" + context.DisplayMode);
+            }
+            else
+            {
+                LambdaLogger.Log("BuildLoginViewModelAsync -- CONTEXT IS NULL");
+            }
+
             if (context?.IdP != null && await _schemeProvider.GetSchemeAsync(context.IdP) != null)
             {
                 var local = context.IdP == IdentityServer4.IdentityServerConstants.LocalIdentityProvider;
