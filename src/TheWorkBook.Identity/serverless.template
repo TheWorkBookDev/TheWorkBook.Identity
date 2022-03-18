@@ -52,7 +52,7 @@
         "VersionDescription" : "#{ReleaseVersion}#",
         "Role": null,
         "Policies": [
-          "AmazonSSMReadOnlyAccess",
+          "AmazonSSMFullAccess",
           "AWSLambda_FullAccess",
           "AWSLambdaVPCAccessExecutionRole"
         ],
