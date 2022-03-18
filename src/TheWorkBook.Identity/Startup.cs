@@ -1,6 +1,7 @@
 ﻿using Amazon.Lambda.Core;
 using Amazon.SimpleSystemsManagement;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,10 @@ namespace TheWorkBook.Identity
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDataProtection()
+                .SetApplicationName("TheWorkBook")
+                .PersistKeysToAWSSystemsManager($"/DataProtection");
+
             services.AddControllersWithViews();
             services.AddTransient<IEnvVariableHelper, EnvVariableHelper>();
 
