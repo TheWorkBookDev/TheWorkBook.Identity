@@ -77,6 +77,19 @@ namespace TheWorkBook.Identity
             // check if we are in the context of an authorization request
             var context = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
 
+            LambdaLogger.Log("model.ReturnUrl:" + model.ReturnUrl);
+
+            if (context != null)
+            {
+                LambdaLogger.Log("GetAuthorizationContextAsync");
+                LambdaLogger.Log("context.RedirectUri:" + context.RedirectUri);
+                LambdaLogger.Log("context.DisplayMode:" + context.DisplayMode);
+            }
+            else
+            {
+                LambdaLogger.Log("GetAuthorizationContextAsync -- CONTEXT IS NULL");
+            }
+
             // the user clicked the "cancel" button
             if (button != "login")
             {
