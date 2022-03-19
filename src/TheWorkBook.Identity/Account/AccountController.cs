@@ -1,3 +1,4 @@
+using Amazon.Lambda.Core;
 using IdentityModel;
 using IdentityServer4;
 using IdentityServer4.Events;
@@ -54,6 +55,8 @@ namespace TheWorkBook.Identity
         [HttpGet]
         public async Task<IActionResult> Login(string returnUrl)
         {
+            LambdaLogger.Log("Login(string returnUrl): " + returnUrl);
+
             // build a model so we know what to show on the login page
             var vm = await BuildLoginViewModelAsync(returnUrl);
 
@@ -73,6 +76,8 @@ namespace TheWorkBook.Identity
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginInputModel model, string button)
         {
+            LambdaLogger.Log("Login(LoginInputModel model, string button): " + model.ReturnUrl);
+
             // check if we are in the context of an authorization request
             var context = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
 
