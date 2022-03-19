@@ -125,7 +125,7 @@ namespace TheWorkBook.Identity
                 MinimumSameSitePolicy = SameSiteMode.Lax
             });
 
-            if (Environment.IsDevelopment())
+            //if (Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
