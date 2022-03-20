@@ -96,7 +96,8 @@ namespace TheWorkBook.Identity
                     {
                         // The client is native, so this change in how to
                         // return the response is for better UX for the end user.
-                        return this.LoadingPage("Redirect", model.ReturnUrl);
+                        string redirectTo = $"..{model.ReturnUrl}";
+                        return this.LoadingPage("Redirect", redirectTo);
                     }
 
                     return Redirect(model.ReturnUrl);
@@ -142,7 +143,8 @@ namespace TheWorkBook.Identity
                         {
                             // The client is native, so this change in how to
                             // return the response is for better UX for the end user.
-                            return this.LoadingPage("Redirect", model.ReturnUrl);
+                            string redirectTo = $"..{model.ReturnUrl}";
+                            return this.LoadingPage("Redirect", redirectTo);
                         }
 
                         // we can trust model.ReturnUrl since GetAuthorizationContextAsync returned non-null
