@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.Lambda.APIGatewayEvents;
+using Amazon.Lambda.Core;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
@@ -47,6 +50,23 @@ namespace TheWorkBook.Identity
         /// <param name="builder"></param>
         protected override void Init(IHostBuilder builder)
         {
+        }
+
+        public override async Task<APIGatewayHttpApiV2ProxyResponse> FunctionHandlerAsync(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext lambdaContext)
+        {
+            if (request != null && request.QueryStringParameters != null)
+            {
+                Dictionary<string, string> queryDictionary = new Dictionary<string, string>();
+
+                foreach (var queryString in request.QueryStringParameters)
+                {
+
+                }
+            }
+
+
+
+            return await base.FunctionHandlerAsync(request, lambdaContext);
         }
     }
 }

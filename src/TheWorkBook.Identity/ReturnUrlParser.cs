@@ -1,11 +1,10 @@
-﻿using IdentityServer4.Models;
+﻿using System.Collections.Specialized;
+using System.Threading.Tasks;
+using IdentityServer4.Models;
 using IdentityServer4.Services;
 using IdentityServer4.Stores;
 using IdentityServer4.Validation;
 using Microsoft.Extensions.Logging;
-using System.Collections.Specialized;
-using System.Threading.Tasks;
-using IdentityServer4.Models;
 
 namespace TheWorkBook.Identity
 {

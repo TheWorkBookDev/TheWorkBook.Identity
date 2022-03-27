@@ -23,7 +23,7 @@ csharp_new_line_before_open_brace = lambdas, types, anonymous_types, methods, co
 #Formatting - organize using options
 
 #do not place System.* using directives before other using directives
-dotnet_sort_system_directives_first = false
+dotnet_sort_system_directives_first = true
 
 #Formatting - spacing options
 

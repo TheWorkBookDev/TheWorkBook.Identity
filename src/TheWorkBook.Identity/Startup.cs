@@ -1,4 +1,6 @@
-﻿using Amazon.Lambda.Core;
+﻿using System;
+using System.Security.Cryptography.X509Certificates;
+using Amazon.Lambda.Core;
 using Amazon.SimpleSystemsManagement;
 using IdentityServer4.Services;
 using Microsoft.AspNetCore.Builder;
@@ -9,8 +11,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Security.Cryptography.X509Certificates;
 using TheWorkBook.Utils;
 using TheWorkBook.Utils.Abstraction;
 using TheWorkBook.Utils.Abstraction.ParameterStore;
@@ -128,10 +128,9 @@ namespace TheWorkBook.Identity
                 MinimumSameSitePolicy = SameSiteMode.Lax
             });
 
-            //if (Environment.IsDevelopment())
+            if (Environment.IsDevelopment() || _envVariableHelper.GetVariable<bool>("EnableDiagnostics"))
             {
                 app.UseDeveloperExceptionPage();
-                app.UseDatabaseErrorPage();
             }
 
             app.UseStaticFiles();
