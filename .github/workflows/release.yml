@@ -49,9 +49,6 @@ jobs:
     needs: [prepare, build-and-test]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment:
-      name: Staging
-      url: 'https://betaapi.theworkbook.ie/swagger/'
     steps:
     - uses: actions/checkout@v3
       with:
