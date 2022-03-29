@@ -118,7 +118,7 @@ jobs:
     - name: Publish
       run: |
         dotnet build --configuration Release --no-restore
-        dotnet publish Publish.slnf --output ${env:GITHUB_WORKSPACE}/output/published -p:Version=${env:version} --configuration Release --framework "net6.0" --runtime linux-arm64 /p:GenerateRuntimeConfigurationFiles=true /p:PublishReadyToRun=true /p:TieredCompilation=false /p:TieredCompilationQuickJit=false --self-contained false     
+        dotnet publish --output ${env:GITHUB_WORKSPACE}/output/published -p:Version=${env:version} --configuration Release --framework "net6.0" --runtime linux-arm64 /p:GenerateRuntimeConfigurationFiles=true /p:PublishReadyToRun=true /p:TieredCompilation=false /p:TieredCompilationQuickJit=false --self-contained false     
       shell: pwsh          
     - name: Zip up files
       run:  |
