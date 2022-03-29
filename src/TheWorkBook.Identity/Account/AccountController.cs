@@ -9,11 +9,11 @@ using IdentityServer4.Extensions;
 using IdentityServer4.Models;
 using IdentityServer4.Services;
 using IdentityServer4.Stores;
-using IdentityServer4.Test;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using TheWorkBook.Backend.Data;
 
 namespace TheWorkBook.Identity
 {
@@ -26,27 +26,26 @@ namespace TheWorkBook.Identity
     [AllowAnonymous]
     public class AccountController : Controller
     {
-        private readonly TestUserStore _users;
         private readonly IIdentityServerInteractionService _interaction;
         private readonly IClientStore _clientStore;
         private readonly IAuthenticationSchemeProvider _schemeProvider;
         private readonly IEventService _events;
+        private readonly TheWorkBookContext _theWorkBookContext;
 
         public AccountController(
             IIdentityServerInteractionService interaction,
             IClientStore clientStore,
             IAuthenticationSchemeProvider schemeProvider,
             IEventService events,
-            TestUserStore users = null)
+            TheWorkBookContext theWorkBookContext)
         {
             // if the TestUserStore is not in DI, then we'll just use the global users collection
             // this is where you would plug in your own custom identity management library (e.g. ASP.NET Identity)
-            _users = users ?? new TestUserStore(TestUsers.Users);
-
             _interaction = interaction;
             _clientStore = clientStore;
             _schemeProvider = schemeProvider;
             _events = events;
+            _theWorkBookContext = theWorkBookContext;
         }
 
         /// <summary>
@@ -115,10 +114,11 @@ namespace TheWorkBook.Identity
             if (ModelState.IsValid)
             {
                 // validate username/password against in-memory store
-                if (_users.ValidateCredentials(model.Username, model.Password))
+                if (ValidateCredentials(model.Username, model.Password))
                 {
-                    var user = _users.FindByUsername(model.Username);
-                    await _events.RaiseAsync(new UserLoginSuccessEvent(user.Username, user.SubjectId, user.Username, clientId: context?.Client.ClientId));
+                    var user = _theWorkBookContext.Users.FirstOrDefault(u => u.Email == model.Username);
+                    await _events.RaiseAsync(
+                        new UserLoginSuccessEvent(user.Email, user.UserId.ToString(), user.Email, clientId: context?.Client.ClientId));
 
                     // only set explicit expiration here if user chooses "remember me". 
                     // otherwise we rely upon expiration configured in cookie middleware.
@@ -133,9 +133,9 @@ namespace TheWorkBook.Identity
                     };
 
                     // issue authentication cookie with subject ID and username
-                    var isuser = new IdentityServerUser(user.SubjectId)
+                    var isuser = new IdentityServerUser(user.UserId.ToString())
                     {
-                        DisplayName = user.Username
+                        DisplayName = user.Email
                     };
 
                     await HttpContext.SignInAsync(isuser, props);
@@ -182,6 +182,26 @@ namespace TheWorkBook.Identity
             return View(vm);
         }
 
+        private bool ValidateCredentials(string username, string password)
+        {
+            TheWorkBook.Backend.Model.User user = _theWorkBookContext.Users.FirstOrDefault(u => u.Email == username);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            string hashedPassword = password.Sha512();
+
+            // Validate password
+            if (user.HashedPassword != hashedPassword)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
 
         /// <summary>
         /// Show logout page
@@ -192,7 +212,7 @@ namespace TheWorkBook.Identity
             // build a model so the logout page knows what to display
             var vm = await BuildLogoutViewModelAsync(logoutId);
 
-            if (vm.ShowLogoutPrompt == false)
+            if (!vm.ShowLogoutPrompt)
             {
                 // if the request for logout was properly authenticated from IdentityServer, then
                 // we don't need to show the prompt and can just log the user out directly.

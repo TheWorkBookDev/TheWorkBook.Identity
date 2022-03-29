@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TheWorkBook.Backend.Data;
 using TheWorkBook.Utils;
 using TheWorkBook.Utils.Abstraction;
 using TheWorkBook.Utils.Abstraction.ParameterStore;
@@ -49,14 +50,14 @@ namespace TheWorkBook.Identity
             services.AddTransient<IReturnUrlParser, ReturnUrlParser>();
 
             using IParameterStore parameterStore = GetParameterStore();
-
             LogTrace("Got IParameterStore object");
 
             IParameter connectionStringParam = parameterStore.GetParameter("/database/app-connection-string");
-
             LogTrace("Got connectionStringParam object");
 
-            var connectionString = connectionStringParam.Value;
+            string connectionString = connectionStringParam.Value;
+
+            services.AddDbContext<TheWorkBookContext>(options => options.UseSqlServer(connectionStringParam.Value));
 
             var builder = services.AddIdentityServer(options =>
             {
@@ -68,7 +69,6 @@ namespace TheWorkBook.Identity
                 // see https://identityserver4.readthedocs.io/en/latest/topics/resources.html
                 options.EmitStaticAudienceClaim = true;
             })
-                .AddTestUsers(TestUsers.Users)
                 // this adds the config data from DB (clients, resources, CORS)
                 .AddConfigurationStore(options =>
                 {
