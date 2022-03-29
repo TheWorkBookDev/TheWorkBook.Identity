@@ -11,10 +11,25 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_NOLOGO: true    
 jobs:
-  release:
-
+  prepare:
+    name: Prepare (get version from tag)
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+    - id: GetBuildVersion
+      run: |
+        $ref = "${env:GITHUB_REF}"
+        $version = $ref.Substring($ref.LastIndexOf("/") + 2)
+        echo "version=${version}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append 
+        echo "::set-output name=version::${version}"
+      shell: pwsh
+    outputs:
+      version: ${{ steps.GetBuildVersion.outputs.version }}
 
+  build-and-test:
+    name: Build and Run Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET
@@ -22,21 +37,64 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Add Nuget Feed
-      run:  dotnet nuget add source ${{ secrets.GITHUBNUGETURL }} -n github -u ${{ secrets.GITHUBUSER }} -p ${{ secrets.GITHUBREADPACKAGES }} --store-password-in-clear-text  
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: eu-west-1
-    - name: AWS CLI
-      run: dotnet tool install -g Amazon.Lambda.Tools
-    - name: Get build version
-      run: |        
-        $ref = "${env:GITHUB_REF}"
-        $version = $ref.Substring($ref.LastIndexOf("/") + 2)
-        echo "version=${version}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append      
+      run:  dotnet nuget add source ${{ secrets.GITHUBNUGETURL }} -n github -u ${{ secrets.GITHUBUSER }} -p ${{ secrets.GITHUBREADPACKAGES }} --store-password-in-clear-text    
       shell: pwsh
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+  code-analysis:
+    name: Code Analysis
+    needs: [prepare, build-and-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: Staging
+      url: 'https://betaapi.theworkbook.ie/swagger/'
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Add Nuget Feed
+      run:  dotnet nuget add source ${{ secrets.GITHUBNUGETURL }} -n github -u ${{ secrets.GITHUBUSER }} -p ${{ secrets.GITHUBREADPACKAGES }} --store-password-in-clear-text    
+      shell: pwsh 
+    - name: Sonarqube Begin
+      run: |
+        dotnet tool install --global dotnet-sonarscanner
+        dotnet sonarscanner begin /k:"TheWorkBookDev_TheWorkBook.Identity" /o:"theworkbookdev" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+    - name: Build
+      run: dotnet build
+    - name: Test with the dotnet CLI
+      run: dotnet test
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+    - name: Sonarqube end
+      run: dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Create deploy package
+    needs: [prepare, code-analysis]
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Add Nuget Feed
+      run:  dotnet nuget add source ${{ secrets.GITHUBNUGETURL }} -n github -u ${{ secrets.GITHUBUSER }} -p ${{ secrets.GITHUBREADPACKAGES }} --store-password-in-clear-text
+    - name: Set Version
+      run: |
+        version=`echo ${{needs.prepare.outputs.version}}`
+        echo "version=$version" >> $GITHUB_ENV
     - name: Download Signing Certificates from AWS S3
       working-directory: ./src/TheWorkBook.Identity/SigningCertificate
       run: aws s3 cp s3://theworkbook-deploy-files/SigningCertificate/cert_rsa512.pfx cert_rsa512.pfx
@@ -45,13 +103,117 @@ jobs:
       run: find *.template -type f -exec sed -i ''s/#{ReleaseVersion}#/v${{ env.version }}/g'' {} \;
     - name: Set version in aws-lambda-tools-defaults
       working-directory: ./src/TheWorkBook.Identity
-      run: find aws-lambda-tools-defaults.json -type f -exec sed -i ''s/#{ReleaseVersion}#/${{ env.version }}/g'' {} \;  
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: find aws-lambda-tools-defaults.json -type f -exec sed -i ''s/#{ReleaseVersion}#/${{ env.version }}/g'' {} \;
+    - name: Create Output Directories
+      run: |
+        cd "${env:GITHUB_WORKSPACE}"
+        mkdir -p output/published
+        mkdir -p output/artifact
+      shell: pwsh
+    - name: Install dependencies
+      run: dotnet restore      
+    - name: Publish
+      run: |
+        dotnet build --configuration Release --no-restore
+        dotnet publish Publish.slnf --output ${env:GITHUB_WORKSPACE}/output/published -p:Version=${env:version} --configuration Release --framework "net6.0" --runtime linux-arm64 /p:GenerateRuntimeConfigurationFiles=true /p:PublishReadyToRun=true /p:TieredCompilation=false /p:TieredCompilationQuickJit=false --self-contained false     
+      shell: pwsh          
+    - name: Zip up files
+      run:  |
+        Compress-Archive -Path "${env:GITHUB_WORKSPACE}/output/published/*" -CompressionLevel Optimal -DestinationPath "${env:GITHUB_WORKSPACE}/output/artifact/LambdaDeploy.zip"
+      shell: pwsh
+    - name: Copy CloudFormation template into package
+      run:  |
+        Copy-Item -Path "${env:GITHUB_WORKSPACE}/src/*/serverless.template" -Destination "${env:GITHUB_WORKSPACE}/output/artifact/serverless.template"
+      shell: pwsh
+    - name: Copy aws-lambda-tools-defaults into package
+      run:  |
+        Copy-Item -Path "${env:GITHUB_WORKSPACE}/src/*/aws-lambda-tools-defaults.json" -Destination "${env:GITHUB_WORKSPACE}/output/artifact/aws-lambda-tools-defaults.json"
+      shell: pwsh      
+    - uses: actions/upload-artifact@v3
+      with:
+        name: identity-package
+        path: ${{ github.workspace }}/output/artifact/**/*
+        if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+        retention-days: 3 # Set low because I want to stay inside the limits of the free tier.
+
+  deploy-staging:
+    name: Deploy to AWS Staging
+    needs: [prepare]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: Staging
+      url: 'https://betaauth.theworkbook.ie/Account/Login/'
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-1
+    - name: AWS CLI
+      run: dotnet tool install -g Amazon.Lambda.Tools
+    - name: Create Output Directory
+      run: mkdir output    
+    - uses: actions/download-artifact@v3
+      with:
+        name: identity-package
+        path: ${{ github.workspace }}/output/
+    - name: Set Environment in CloudFormation
+      working-directory: ${{ github.workspace }}/output/
+      run: find *.template -type f -exec sed -i ''s/#{EnvironmentName}#/Staging/g'' {} \;
+    - name: Set Domain in CloudFormation
+      working-directory: ${{ github.workspace }}/output/
+      run: find *.template -type f -exec sed -i ''s/auth.theworkbook.ie/betaauth.theworkbook.ie/g'' {} \;
     - name: Deploy to Lambda
-      working-directory: ./src/TheWorkBook.Identity
-      run: dotnet lambda deploy-serverless
+      working-directory: ${{ github.workspace }}/output/
+      run: dotnet lambda deploy-serverless --package LambdaDeploy.zip --region eu-west-1 --s3-bucket theworkbook-apps --s3-prefix TheWorkBookAuthStaging/ --stack-name TheWorkBookAuthStaging --template serverless.template    
+
+  deploy-production:
+    name: Deploy to AWS Production
+    needs: [prepare, deploy-staging]
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+      url: 'https://auth.theworkbook.ie/Account/Login/'
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-1
+    - name: AWS CLI
+      run: dotnet tool install -g Amazon.Lambda.Tools
+    - name: Create Output Directory
+      run: mkdir output    
+    - uses: actions/download-artifact@v3
+      with:
+        name: identity-package
+        path: ${{ github.workspace }}/output/
+    - name: Set Environment in CloudFormation
+      working-directory: ${{ github.workspace }}/output/
+      run: find *.template -type f -exec sed -i ''s/#{EnvironmentName}#/Production/g'' {} \;
+    - name: Deploy to Lambda
+      working-directory: ${{ github.workspace }}/output/
+      run: dotnet lambda deploy-serverless --package LambdaDeploy.zip --region eu-west-1 --s3-bucket theworkbook-apps --s3-prefix TheWorkBookAuth/ --stack-name TheWorkBookAuth --template serverless.template    
+    # We want to delete the artifact because it contains signing certificates that we don't want to make available publicly.
+    # To do this, we create an empty directory and overwrite the previously uploaded artifact.
+    - name: create empty directory 
+      run: |
+        mkdir empty.d
+    - name: empty dist archive
+      uses: actions/upload-artifact@v1
+      with:
+        name: identity-package
+        path: empty.d

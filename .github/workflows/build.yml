@@ -2,20 +2,23 @@ name: Build (CI)
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - '*'
   pull_request:
-    branches: [ main ]
+    branches:
+      - '*'
+  workflow_dispatch:
+
 env:
   # Stop wasting time caching packages
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   # Disable sending usage data to Microsoft
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  DOTNET_NOLOGO: true    
+  DOTNET_NOLOGO: true
+    
 jobs:
-  build:
-
+  build-and-test:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET
@@ -30,3 +33,60 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+
+  super-linter:
+    # Set the agent to run on
+    runs-on: ubuntu-latest
+
+    ##################
+    # Load all steps #
+    ##################
+    steps:
+    ##########################
+    # Checkout the code base #
+    ##########################
+    - name: Checkout Code
+      uses: actions/checkout@v3
+      with:
+        # Full git history is needed to get a proper list of changed files within `super-linter`
+        fetch-depth: 0
+    ################################
+    # Run Linter against code base #
+    ################################
+    - name: Lint Code Base
+      uses: github/super-linter@v4
+      env:
+        VALIDATE_ALL_CODEBASE: false
+        VALIDATE_JSCPD: false
+        VALIDATE_GITHUB_ACTIONS: false
+        # Change to 'master' if your main branch differs
+        DEFAULT_BRANCH: main
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  code-analysis:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Add Nuget Feed
+      run:  dotnet nuget add source ${{ secrets.GITHUBNUGETURL }} -n github -u ${{ secrets.GITHUBUSER }} -p ${{ secrets.GITHUBREADPACKAGES }} --store-password-in-clear-text    
+      shell: pwsh 
+    - name: Sonarqube Begin
+      run: | 
+        dotnet tool install --global dotnet-sonarscanner
+        dotnet sonarscanner begin /k:"TheWorkBookDev_TheWorkBook.Identity" /o:"theworkbookdev" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+    - name: Build
+      run: dotnet build
+    - name: Test with the dotnet CLI
+      run: dotnet test
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+    - name: Sonarqube end
+      run: dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

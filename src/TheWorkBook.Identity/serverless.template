@@ -42,7 +42,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Architectures" : ["arm64"],
-        "FunctionName": { "Fn::Sub": "identity-services" },
+        "FunctionName": { "Fn::Sub": "#{EnvironmentName}#identity-services" },
         "Handler": "TheWorkBook.Identity::TheWorkBook.Identity.LambdaEntryPoint::FunctionHandlerAsync",
         "Runtime": "dotnet6",
         "CodeUri": "",
