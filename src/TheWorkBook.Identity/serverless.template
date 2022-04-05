@@ -46,7 +46,7 @@
         "Handler": "TheWorkBook.Identity::TheWorkBook.Identity.LambdaEntryPoint::FunctionHandlerAsync",
         "Runtime": "dotnet6",
         "CodeUri": "",
-        "MemorySize": 2048,
+        "MemorySize": 4096,
         "Timeout": 15,
         "Description" : "#{ReleaseVersion}#",
         "VersionDescription" : "#{ReleaseVersion}#",
