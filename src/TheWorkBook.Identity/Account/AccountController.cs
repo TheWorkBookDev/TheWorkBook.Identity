@@ -332,7 +332,7 @@ namespace TheWorkBook.Identity
         {
             // Check user doesn't already exist in the database
             TheWorkBook.Backend.Model.User user = await _theWorkBookContext.Users.FirstOrDefaultAsync(u => u.Email == registerInputModel.Email);
-            
+
             if (user != null)
             {
                 return false;
@@ -352,7 +352,6 @@ namespace TheWorkBook.Identity
             return true;
         }
 
-        
         /// <summary>
         /// Show logout page
         /// </summary>
@@ -547,7 +546,6 @@ namespace TheWorkBook.Identity
             vm.Phone = model.Phone;
             return vm;
         }
-        
 
         private async Task<LogoutViewModel> BuildLogoutViewModelAsync(string logoutId)
         {
