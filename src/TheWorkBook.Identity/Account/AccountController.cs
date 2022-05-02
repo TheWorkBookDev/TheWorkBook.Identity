@@ -13,13 +13,13 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TheWorkBook.Backend.Data;
 
 namespace TheWorkBook.Identity
 {
     /// <summary>
-    /// This sample controller implements a typical login/logout/provision workflow for local and external accounts.
-    /// The login service encapsulates the interactions with the user data store. This data store is in-memory only and cannot be used for production!
+    /// This controller implements the register/login/logout/provision workflow for local and external accounts.
     /// The interaction service provides a way for the UI to communicate with identityserver for validation and context retrieval
     /// </summary>
     [SecurityHeaders]
@@ -39,8 +39,6 @@ namespace TheWorkBook.Identity
             IEventService events,
             TheWorkBookContext theWorkBookContext)
         {
-            // if the TestUserStore is not in DI, then we'll just use the global users collection
-            // this is where you would plug in your own custom identity management library (e.g. ASP.NET Identity)
             _interaction = interaction;
             _clientStore = clientStore;
             _schemeProvider = schemeProvider;
@@ -191,7 +189,7 @@ namespace TheWorkBook.Identity
         [HttpGet]
         public async Task<IActionResult> Register(string returnUrl)
         {
-            LambdaLogger.Log("Login(string returnUrl): " + returnUrl);
+            LambdaLogger.Log("Register(string returnUrl): " + returnUrl);
 
             // build a model so we know what to show on the login page
             var vm = await BuildRegisterViewModelAsync(returnUrl);
@@ -251,7 +249,7 @@ namespace TheWorkBook.Identity
             if (ModelState.IsValid)
             {
                 // First register the user
-                bool registerSuccess = RegisterUser(model);
+                bool registerSuccess = await RegisterUser(model);
                 if (!registerSuccess)
                 {
                     await _events.RaiseAsync(new UserLoginFailureEvent(model.Email, "account exists", clientId: context?.Client.ClientId));
@@ -330,10 +328,10 @@ namespace TheWorkBook.Identity
             return true;
         }
 
-        public bool RegisterUser(RegisterInputModel registerInputModel)
+        private async Task<bool> RegisterUser(RegisterInputModel registerInputModel)
         {
             // Check user doesn't already exist in the database
-            TheWorkBook.Backend.Model.User user = _theWorkBookContext.Users.FirstOrDefault(u => u.Email == registerInputModel.Email);
+            TheWorkBook.Backend.Model.User user = await _theWorkBookContext.Users.FirstOrDefaultAsync(u => u.Email == registerInputModel.Email);
             
             if (user != null)
             {
@@ -350,7 +348,7 @@ namespace TheWorkBook.Identity
             user.RecordUpdatedUtc = DateTime.UtcNow;
 
             _theWorkBookContext.Users.Add(user);
-            _theWorkBookContext.SaveChanges();
+            await _theWorkBookContext.SaveChangesAsync();
             return true;
         }
 
@@ -413,7 +411,6 @@ namespace TheWorkBook.Identity
         {
             return View();
         }
-
 
         /*****************************************/
         /* helper APIs for the AccountController */

@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.WebUtilities;
+﻿using System.Collections.Generic;
 using System.Collections.Specialized;
 using IdentityServer4.Extensions;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace TheWorkBook.Identity
 {

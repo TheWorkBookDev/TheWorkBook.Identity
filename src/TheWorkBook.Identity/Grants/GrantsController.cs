@@ -1,17 +1,17 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using IdentityServer4.Events;
 using IdentityServer4.Extensions;
 using IdentityServer4.Services;
 using IdentityServer4.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace TheWorkBook.Identity
 {
     /// <summary>
-    /// This sample controller allows a user to revoke grants given to clients
+    /// This controller allows a user to revoke grants given to clients
     /// </summary>
     [SecurityHeaders]
     [Authorize]
@@ -21,7 +21,7 @@ namespace TheWorkBook.Identity
         private readonly IClientStore _clients;
         private readonly IResourceStore _resources;
         private readonly IEventService _events;
-
+        
         public GrantsController(IIdentityServerInteractionService interaction,
             IClientStore clients,
             IResourceStore resources,

@@ -27,7 +27,6 @@ namespace TheWorkBook.Identity
             _authorizationParametersMessageStore = authorizationParametersMessageStore;
         }
 
-
         public bool IsValidReturnUrl(string returnUrl)
         {
             return true;

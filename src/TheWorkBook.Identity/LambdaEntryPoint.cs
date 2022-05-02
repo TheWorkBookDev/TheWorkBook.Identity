@@ -54,18 +54,6 @@ namespace TheWorkBook.Identity
 
         public override async Task<APIGatewayHttpApiV2ProxyResponse> FunctionHandlerAsync(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext lambdaContext)
         {
-            if (request != null && request.QueryStringParameters != null)
-            {
-                Dictionary<string, string> queryDictionary = new Dictionary<string, string>();
-
-                foreach (var queryString in request.QueryStringParameters)
-                {
-
-                }
-            }
-
-
-
             return await base.FunctionHandlerAsync(request, lambdaContext);
         }
     }
