@@ -80,8 +80,11 @@ namespace TheWorkBook.Identity
             // check if we are in the context of an authorization request
             var context = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
 
-            // the user clicked the "cancel" button
-            if (button != "login")
+            if (button == "signup")     // the user clicked the "signup" button
+            {
+                return RedirectToAction("Register", new { ReturnUrl = model.ReturnUrl });
+            }
+            else if (button != "login") // the user clicked the "cancel" button
             {
                 if (context != null)
                 {
@@ -182,6 +185,131 @@ namespace TheWorkBook.Identity
             return View(vm);
         }
 
+        /// <summary>
+        /// Entry point into the register workflow
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Register(string returnUrl)
+        {
+            LambdaLogger.Log("Login(string returnUrl): " + returnUrl);
+
+            // build a model so we know what to show on the login page
+            var vm = await BuildRegisterViewModelAsync(returnUrl);
+
+            if (vm.IsExternalLoginOnly)
+            {
+                // we only have one option for logging in and it's an external provider
+                return RedirectToAction("Challenge", "External", new { scheme = vm.ExternalLoginScheme, returnUrl });
+            }
+
+            return View(vm);
+        }
+
+        /// <summary>
+        /// Handle postback from register page
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterInputModel model, string button)
+        {
+            LambdaLogger.Log("Register(RegisterInputModel model, string button): " + model.ReturnUrl);
+            RegisterViewModel vm;
+            // check if we are in the context of an authorization request
+            var context = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
+
+            // the user clicked the "cancel" button
+            if (button != "register")
+            {
+                if (context != null)
+                {
+                    // if the user cancels, send a result back into IdentityServer as if they 
+                    // denied the consent (even if this client does not require consent).
+                    // this will send back an access denied OIDC error response to the client.
+                    await _interaction.DenyAuthorizationAsync(context, AuthorizationError.AccessDenied);
+
+                    // we can trust model.ReturnUrl since GetAuthorizationContextAsync returned non-null
+                    if (context.IsNativeClient())
+                    {
+                        // The client is native, so this change in how to
+                        // return the response is for better UX for the end user.
+                        string redirectTo = model.ReturnUrl;
+                        if (!redirectTo.StartsWith("/"))
+                            redirectTo = "/" + redirectTo;
+
+                        return this.LoadingPage("Redirect", redirectTo);
+                    }
+
+                    return Redirect(model.ReturnUrl);
+                }
+                else
+                {
+                    // since we don't have a valid context, then we just go back to the home page
+                    return Redirect("~/");
+                }
+            }
+
+            if (ModelState.IsValid)
+            {
+                // First register the user
+                bool registerSuccess = RegisterUser(model);
+                if (!registerSuccess)
+                {
+                    await _events.RaiseAsync(new UserLoginFailureEvent(model.Email, "account exists", clientId: context?.Client.ClientId));
+                    ModelState.AddModelError(string.Empty, AccountOptions.AccountAlreadyEsxistsErrorMessage);
+                    vm = await BuildRegisterViewModelAsync(model);
+                    return View(vm);
+                }
+
+                var user = _theWorkBookContext.Users.FirstOrDefault(u => u.Email == model.Email);
+                await _events.RaiseAsync(
+                    new UserLoginSuccessEvent(user.Email, user.UserId.ToString(), user.Email, clientId: context?.Client.ClientId));
+
+                // issue authentication cookie with subject ID and username
+                var isuser = new IdentityServerUser(user.UserId.ToString())
+                {
+                    DisplayName = user.Email
+                };
+
+                await HttpContext.SignInAsync(isuser, null);
+
+                if (context != null)
+                {
+                    if (context.IsNativeClient())
+                    {
+                        // The client is native, so this change in how to
+                        // return the response is for better UX for the end user.
+                        string redirectTo = model.ReturnUrl;
+                        if (!redirectTo.StartsWith("/"))
+                            redirectTo = "/" + redirectTo;
+
+                        return this.LoadingPage("Redirect", redirectTo);
+                    }
+
+                    // we can trust model.ReturnUrl since GetAuthorizationContextAsync returned non-null
+                    return Redirect(model.ReturnUrl);
+                }
+
+                // request for a local page
+                if (Url.IsLocalUrl(model.ReturnUrl))
+                {
+                    return Redirect(model.ReturnUrl);
+                }
+                else if (string.IsNullOrEmpty(model.ReturnUrl))
+                {
+                    return Redirect("~/");
+                }
+                else
+                {
+                    // user might have clicked on a malicious link - should be logged
+                    throw new Exception("invalid return URL: " + model.ReturnUrl);
+                }
+            }
+
+            // something went wrong, show form with error
+            vm = await BuildRegisterViewModelAsync(model);
+            return View(vm);
+        }
+
         private bool ValidateCredentials(string username, string password)
         {
             TheWorkBook.Backend.Model.User user = _theWorkBookContext.Users.FirstOrDefault(u => u.Email == username);
@@ -202,7 +330,31 @@ namespace TheWorkBook.Identity
             return true;
         }
 
+        public bool RegisterUser(RegisterInputModel registerInputModel)
+        {
+            // Check user doesn't already exist in the database
+            TheWorkBook.Backend.Model.User user = _theWorkBookContext.Users.FirstOrDefault(u => u.Email == registerInputModel.Email);
+            
+            if (user != null)
+            {
+                return false;
+            }
 
+            user = new Backend.Model.User();
+            user.FirstName = registerInputModel.FirstName;
+            user.LastName = registerInputModel.LastName;
+            user.Email = registerInputModel.Email;
+            user.Mobile = registerInputModel.Phone;
+            user.HashedPassword = registerInputModel.Password.Sha512();
+            user.RecordCreatedUtc = DateTime.UtcNow;
+            user.RecordUpdatedUtc = DateTime.UtcNow;
+
+            _theWorkBookContext.Users.Add(user);
+            _theWorkBookContext.SaveChanges();
+            return true;
+        }
+
+        
         /// <summary>
         /// Show logout page
         /// </summary>
@@ -331,6 +483,74 @@ namespace TheWorkBook.Identity
             vm.RememberLogin = model.RememberLogin;
             return vm;
         }
+
+        private async Task<RegisterViewModel> BuildRegisterViewModelAsync(string returnUrl)
+        {
+            var context = await _interaction.GetAuthorizationContextAsync(returnUrl);
+            if (context?.IdP != null && await _schemeProvider.GetSchemeAsync(context.IdP) != null)
+            {
+                var local = context.IdP == IdentityServer4.IdentityServerConstants.LocalIdentityProvider;
+
+                // this is meant to short circuit the UI and only trigger the one external IdP
+                var vm = new RegisterViewModel
+                {
+                    EnableLocalLogin = local,
+                    ReturnUrl = returnUrl,
+                    Email = context?.LoginHint,
+                };
+
+                if (!local)
+                {
+                    vm.ExternalProviders = new[] { new ExternalProvider { AuthenticationScheme = context.IdP } };
+                }
+
+                return vm;
+            }
+
+            var schemes = await _schemeProvider.GetAllSchemesAsync();
+
+            var providers = schemes
+                .Where(x => x.DisplayName != null)
+                .Select(x => new ExternalProvider
+                {
+                    DisplayName = x.DisplayName ?? x.Name,
+                    AuthenticationScheme = x.Name
+                }).ToList();
+
+            var allowLocal = true;
+            if (context?.Client.ClientId != null)
+            {
+                var client = await _clientStore.FindEnabledClientByIdAsync(context.Client.ClientId);
+                if (client != null)
+                {
+                    allowLocal = client.EnableLocalLogin;
+
+                    if (client.IdentityProviderRestrictions != null && client.IdentityProviderRestrictions.Any())
+                    {
+                        providers = providers.Where(provider => client.IdentityProviderRestrictions.Contains(provider.AuthenticationScheme)).ToList();
+                    }
+                }
+            }
+
+            return new RegisterViewModel
+            {
+                AllowRememberLogin = AccountOptions.AllowRememberLogin,
+                EnableLocalLogin = allowLocal && AccountOptions.AllowLocalLogin,
+                ReturnUrl = returnUrl,
+                ExternalProviders = providers.ToArray()
+            };
+        }
+
+        private async Task<RegisterViewModel> BuildRegisterViewModelAsync(RegisterInputModel model)
+        {
+            var vm = await BuildRegisterViewModelAsync(model.ReturnUrl);
+            vm.FirstName = model.FirstName;
+            vm.LastName = model.LastName;
+            vm.Email = model.Email;
+            vm.Phone = model.Phone;
+            return vm;
+        }
+        
 
         private async Task<LogoutViewModel> BuildLogoutViewModelAsync(string logoutId)
         {
