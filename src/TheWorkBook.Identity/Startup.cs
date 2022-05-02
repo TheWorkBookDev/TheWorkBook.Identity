@@ -109,16 +109,6 @@ namespace TheWorkBook.Identity
             }
 
             services.AddAuthentication();
-            //.AddGoogle(options =>
-            //{
-            //    options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
-
-            //    // register your IdentityServer with Google at https://console.developers.google.com
-            //    // enable the Google+ API
-            //    // set the redirect URI to https://localhost:5001/signin-google
-            //    options.ClientId = "copy client ID from Google here";
-            //    options.ClientSecret = "copy client secret from Google here";
-            //});
         }
 
         public void Configure(IApplicationBuilder app)

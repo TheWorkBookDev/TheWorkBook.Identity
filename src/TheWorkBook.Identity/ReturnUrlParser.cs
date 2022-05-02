@@ -63,11 +63,6 @@ namespace TheWorkBook.Identity
                     authorizationRequest.PromptModes = request.PromptModes;
                     authorizationRequest.AcrValues = request.GetAcrValues();
                     authorizationRequest.ValidatedResources = request.ValidatedResources;
-                    //authorizationRequest.Parameters = request.Raw;
-                    //authorizationRequest.RequestObjectValues = request.RequestObjectValues;
-
-                    //return new AuthorizationRequest(result.ValidatedRequest);
-
                     return authorizationRequest;
                 }
             }

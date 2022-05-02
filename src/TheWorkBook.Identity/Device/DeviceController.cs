@@ -205,7 +205,6 @@ namespace TheWorkBook.Identity
             return new ScopeViewModel
             {
                 Value = parsedScopeValue.RawValue,
-                // todo: use the parsed scope value in the display?
                 DisplayName = apiScope.DisplayName ?? apiScope.Name,
                 Description = apiScope.Description,
                 Emphasize = apiScope.Emphasize,

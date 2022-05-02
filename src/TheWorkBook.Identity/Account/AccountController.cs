@@ -253,7 +253,7 @@ namespace TheWorkBook.Identity
                 if (!registerSuccess)
                 {
                     await _events.RaiseAsync(new UserLoginFailureEvent(model.Email, "account exists", clientId: context?.Client.ClientId));
-                    ModelState.AddModelError(string.Empty, AccountOptions.AccountAlreadyEsxistsErrorMessage);
+                    ModelState.AddModelError(string.Empty, AccountOptions.AccountAlreadyExistsErrorMessage);
                     vm = await BuildRegisterViewModelAsync(model);
                     return View(vm);
                 }

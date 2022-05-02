@@ -2,15 +2,15 @@
 
 namespace TheWorkBook.Identity
 {
-    public class AccountOptions
+    public static class AccountOptions
     {
-        public static string AccountAlreadyEsxistsErrorMessage = "Account already exists for these details. Please log in.";
-        public static bool AllowLocalLogin = true;
-        public static bool AllowRememberLogin = true;
-        public static bool AutomaticRedirectAfterSignOut = false;
-        public static string InvalidCredentialsErrorMessage = "Invalid username or password";
-        public static TimeSpan RememberMeLoginDuration = TimeSpan.FromDays(30);
+        public const string AccountAlreadyExistsErrorMessage = "Account already exists for these details. Please log in.";
+        public const bool AllowLocalLogin = true;
+        public const bool AllowRememberLogin = true;
+        public const bool AutomaticRedirectAfterSignOut = false;
+        public const string InvalidCredentialsErrorMessage = "Invalid username or password";
+        public const bool ShowLogoutPrompt = true;
 
-        public static bool ShowLogoutPrompt = true;
+        public static TimeSpan RememberMeLoginDuration { get; set; } = TimeSpan.FromDays(30);
     }
 }
