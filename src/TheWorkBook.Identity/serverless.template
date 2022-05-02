@@ -89,12 +89,11 @@
         },
         "VpcConfig": {
           "SecurityGroupIds": [
-              "sg-08eef6f199963de4b"
+              "sg-0eb3905aeed9d47fe"
           ],
           "SubnetIds": [
-              "subnet-0f983d4d6eae1a2a9",
-              "subnet-0671ac1705a89c414",
-              "subnet-04733ab6a67ed6cd4"
+              "subnet-0ddbead025ecea8e5",
+              "subnet-0f318af5b9ab6f1f1"
           ]
         }
       }
