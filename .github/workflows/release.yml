@@ -216,7 +216,7 @@ jobs:
       run: |
         mkdir empty.d
     - name: empty dist archive
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: identity-package
         path: empty.d
